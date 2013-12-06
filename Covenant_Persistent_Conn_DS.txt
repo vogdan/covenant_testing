@@ -1,0 +1,147 @@
+
+ HTTP persistent connection functionality of Covenant 
+======================================================
+
+
++---------------------+
+| Feature description |
++---------------------+
+
+http://tools.ietf.org/html/rfc2616#section-8.1
+
+
++--------------+
+| Test Summary |
++--------------+
+
+Test 1 - Persistent connection should be the default connection type
+Test 2 - Persistent connection signaling - CLOSE
+Test 3 - Signaling of connections from multiple clients to multiple servers
+Test 4 - Compatibility with HTTP/1.0 clients
+Test 5 - Number of connections
+Test 6 - Pipelining 
+Test 7 - Asynchronous close events recovery
+
+
++-------+
+| TESTS |
++-------+
+
+   Test 1 - Persistent connection should be the default connection type
+   
+        Description: Persistent connections are the default behavior of any HTTP connection. 
+                     Unless otherwise indicated, the client SHOULD assume that the server 
+                     will maintain a persistent connection, even after error responses from 
+                     the server.
+                     
+        Action1: Client connects to server via proxy
+        Verify1: Client to proxy connection is persistent (single and multiple requests per 
+                 connection)  
+        Verify2: Proxy to server connection is persistent (single and multiple requests per
+                 connection)
+
+
+   Test 2 - Persistent connection signaling - CLOSE  
+
+        Description: If either the client or the server sends the close token in the
+                     Connection header, that request becomes the last one for the
+                     connection. 
+                     HTTP/1.1 defines the "close" connection option for the sender to
+                     signal that the connection will be closed after completion of the
+                     response. For example,
+
+                     Connection: close
+
+                     in either the request or the response header fields indicates that
+                     the connection SHOULD NOT be considered `persistent' after the current
+                     request/response is complete.
+
+        Steps:     Identical as Test 1
+        Action1:   Server sends the "close" token
+        Verify1.1: Persistent proxy - server connection closes after current response is
+                   complete.
+        Verify1.2: Persistent client - proxy connection closes after current response is
+                   complete.
+        Steps:     Identical as Test 1
+        Action2:   Client sends the "close" token
+        Verify2.1: Persistent client - proxy connection closes after current request is
+                   complete.
+        Verify2.2: Persistent proxy - server connection closes after current request is
+                   complete.
+
+                   
+   Test 3 - Signaling of connections from multiple clients to multiple servers
+   
+        Description: The proxy server MUST signal persistent connections separately with
+                     its clients and the origin servers (or other proxy servers) that it
+                     connects to. Each persistent connection applies to only one transport
+                     link.
+
+        Steps:     Similar to Test 2 steps but using one client connecting to multiple 
+                   servers, multiple clients connecting to one server and multiple 
+                   clients connecting to multiple servers.
+
+ 
++----------------+
+| Optional tests | 
++----------------+
+   Test 4 - Compatibility with HTTP/1.0 clients
+        
+        Description: http://tools.ietf.org/html/rfc2068#section-19.7.1
+                     A proxy server MUST NOT establish a HTTP/1.1 persistent connection
+                     with an HTTP/1.0 client.                      
+
+                     Persistent connections in HTTP/1.0 must be explicitly negotiated as 
+                     they are not the default behavior.
+                     An HTTP/1.1 server may also establish persistent connections with                     
+                     HTTP/1.0 clients upon receipt of a Keep-Alive connection token.
+                     However, a persistent connection with an HTTP/1.0 client cannot make
+                     use of the chunked transfer-coding, and therefore MUST use a
+                     Content-Length for marking the ending boundary of each message.
+
+
+   Test 5 - Number of connections
+
+        Description: A proxy SHOULD use up to 2*N connections to another server or proxy,
+                     where N is the number of simultaneously active users. These guidelines 
+                     are intended to improve HTTP response times and avoid congestion.
+
+
+   Test 6 - Pipelining
+       
+        Description: A client that supports persistent connections MAY "pipeline" its
+                     requests (i.e., send multiple requests without waiting for each
+                     response). A server MUST send its responses to those requests in the
+                     same order that the requests were received.
+
+
+   Test 7 - Asynchronous close events recovery 
+   
+        Description: Servers will usually have some time-out value beyond which they will
+                     no longer maintain an inactive connection. A client, server, or proxy
+                     MAY close the transport connection at any time. For example, a client 
+                     might have started to send a new request at the same time that the 
+                     server has decided to close the "idle" connection. From the server's 
+                     point of view, the connection is being closed while it was idle, but 
+                     from the client's point of view, a request is in progress.
+                     This means that clients, servers, and proxies MUST be able to recover
+                     from asynchronous close events.
+
+
+
++-------------------------+
+| Standard programs used  | 
++-------------------------+
+request api or
+lynx or 
+curl or 
+a CLI HTTP client such as restez, httpie, etc.
+tcpdump
+
++--------------------------+
+| Programs to be developed |
++--------------------------+
+Simple HTTP server - needed to control the persistent connection behaviour for the server
+                     the proxy will connect to on behalf of the client
+
+
